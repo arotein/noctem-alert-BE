@@ -1,0 +1,74 @@
+server:
+  port: 0
+  servlet:
+    encoding:
+      charset: UTF-8
+      enable: true
+      force: true
+  shutdown: graceful
+
+spring:
+  application:
+    name: alert-server
+  config:
+    import: optional:configserver:http://${CONFIG_SERVER}:8888
+  profiles:
+    active: ${PROFILE}
+  cloud:
+    config:
+      fail-fast: true
+    bus:
+      enabled: true
+      refresh:
+        enabled: true
+      destination: config-topic
+  kafka:
+    bootstrap-servers: http://121.145.206.143:9092
+    consumer:
+      properties.spring.json.use.type.headers: false
+      group-id: ${random.uuid}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  redis:
+    host: redis
+    port: 6379
+
+eureka:
+  instance:
+    instance-id: ${spring.cloud.client.hostname}:${spring.application.instance_id:${random.value}}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://${EUREKA_SERVER}:8761/eureka
+
+management:
+  endpoints:
+    web:
+      base-path: /api/${STORE_SERVICE}/actuator
+      exposure:
+        include: health, refresh, httptrace, busrefresh, prometheus, metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
+  level:
+    root: info
+
+global:
+  jwt-token:
+    signer: ${NOCTEM_JWT_SIGNER}
+  api:
+    base-path: /api/alert-server
+
