@@ -1,13 +1,11 @@
-package noctem.alertServer.Alert.dto;
+package noctem.alertServer.alert.vo;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class PurchaseResultVo {
+public class OrderCancelFromUserVo {
     private Long storeId;
     private Long purchaseId;
 }

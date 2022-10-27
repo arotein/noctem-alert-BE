@@ -23,6 +23,9 @@
 - alert server
   https://github.com/arotein/noctem-alert-BE.git
 
+- batch server
+  https://github.com/arotein/noctem-batch-BE.git
+
 - user service
   https://github.com/arotein/noctem-user-BE.git
 

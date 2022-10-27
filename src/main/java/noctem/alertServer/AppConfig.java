@@ -43,8 +43,7 @@ public class AppConfig {
 //        return new ReactiveKafkaConsumerTemplate<String, String>(receiverOptions());
 //    }
 
-    @Bean
-    public ObjectMapper objectMapper() {
+    public static ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
 
