@@ -1,5 +1,5 @@
 server:
-  port: 0
+  port: 33333
   servlet:
     encoding:
       charset: UTF-8
@@ -23,33 +23,20 @@ spring:
         enabled: true
       destination: config-topic
   kafka:
-    bootstrap-servers: http://121.145.206.143:9092
+    bootstrap-servers: http://${KAFKA_SERVER}:9092
     consumer:
-      properties.spring.json.use.type.headers: false
       group-id: ${random.uuid}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#      auto-offset-reset: earliest
+    #      auto-offset-reset: earliest
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
-  redis:
-    host: redis
-    port: 6379
-
-eureka:
-  instance:
-    instance-id: ${spring.cloud.client.hostname}:${spring.application.instance_id:${random.value}}
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: http://${EUREKA_SERVER}:8761/eureka
 
 management:
   endpoints:
     web:
-      base-path: /api/${STORE_SERVICE}/actuator
+      base-path: /sse/alert-server/actuator
       exposure:
         include: health, refresh, httptrace, busrefresh, prometheus, metrics
   metrics:
@@ -70,5 +57,5 @@ global:
   jwt-token:
     signer: ${NOCTEM_JWT_SIGNER}
   api:
-    base-path: /api/alert-server
+    base-path: /sse/alert-server
 

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+import reactor.util.concurrent.Queues;
 
 import java.util.HashMap;
 
@@ -34,11 +35,13 @@ public class AlertToStoreController {
 
     @GetMapping(path = "/{storeId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamStoreEvent(@PathVariable Long storeId) {
+        log.info("{}번 매장에서 연결 요청", storeId);
         Sinks.Many<String> sink;
         if (storeSinksMap.get(storeId) != null) {
             sink = storeSinksMap.get(storeId);
         } else {
-            sink = Sinks.many().multicast().onBackpressureBuffer();
+            // 마지막 구독자가 연결을 끊으면 전체가 다 끊기는 설정 => autoCancel
+            sink = Sinks.many().multicast().onBackpressureBuffer(Queues.SMALL_BUFFER_SIZE, false);
             storeSinksMap.put(storeId, sink);
         }
         return sink.asFlux();
@@ -47,6 +50,7 @@ public class AlertToStoreController {
     @KafkaListener(topics = {PURCHASE_FROM_USER_TOPIC})
     public void purchaseFromUser(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         PurchaseFromUserVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), PurchaseFromUserVo.class);
+        log.info("{}번 매장에 주문 요청", vo.getStoreId());
         Sinks.Many<String> sink = storeSinksMap.get(vo.getStoreId());
         if (sink != null) {
             sink.tryEmitNext(AlertCommonResponse.builder()
@@ -60,6 +64,7 @@ public class AlertToStoreController {
     @KafkaListener(topics = {ORDER_CANCEL_FROM_USER_TOPIC})
     public void orderCancelFromUser(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         OrderCancelFromUserVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderCancelFromUserVo.class);
+        log.info("{}번 매장에 주문취소 요청", vo.getStoreId());
         Sinks.Many<String> sink = storeSinksMap.get(vo.getStoreId());
         if (sink != null) {
             sink.tryEmitNext(AlertCommonResponse.builder()

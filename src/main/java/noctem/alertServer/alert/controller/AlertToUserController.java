@@ -32,13 +32,14 @@ public class AlertToUserController {
     private final String ORDER_CANCEL_FROM_STORE_TOPIC = "order-cancel-from-store-alert";
     private final HashMap<Long, Sinks.Many<String>> userSinksMap = new HashMap<>();
 
-    @GetMapping(path = "/{userAccountId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    // /{userAccountId}는 토큰에서
+    @GetMapping(path = "", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamUserEvent(@PathVariable Long userAccountId) {
         Sinks.Many<String> sink;
         if (userSinksMap.get(userAccountId) != null) {
             sink = userSinksMap.get(userAccountId);
         } else {
-            sink = Sinks.many().multicast().onBackpressureBuffer();
+            sink = Sinks.many().unicast().onBackpressureBuffer();
             userSinksMap.put(userAccountId, sink);
         }
         return sink.asFlux();
@@ -67,6 +68,7 @@ public class AlertToUserController {
                     .data(new OrderCancelFromStoreResDto(vo.getOrderStatus()))
                     .build()
                     .convertToString());
+            sink.tryEmitComplete();
         }
     }
 }
