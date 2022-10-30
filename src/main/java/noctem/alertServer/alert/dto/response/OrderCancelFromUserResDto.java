@@ -7,12 +7,12 @@ import java.time.format.DateTimeFormatter;
 
 @Data
 public class OrderCancelFromUserResDto {
-    private Long purchaseId;
+    private Integer orderNumber;
     private String orderStatus;
     private String dateTime;
 
-    public OrderCancelFromUserResDto(Long purchaseId) {
-        this.purchaseId = purchaseId;
+    public OrderCancelFromUserResDto(Integer orderNumber) {
+        this.orderNumber = orderNumber;
         this.dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss"));
     }
 }

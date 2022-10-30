@@ -6,6 +6,22 @@ server:
       enable: true
       force: true
   shutdown: graceful
+  http2.enabled: true
+  ssl:
+    enabled: true
+    enabled-protocols: TLSv1.3
+    key-store: classpath:cert.p12
+    key-store-type: PKCS12
+    key-store-password: noctem
+
+#eureka:
+#  instance:
+#    instance-id: ${spring.cloud.client.hostname}:${spring.application.instance_id:${random.value}}
+#  client:
+#    register-with-eureka: true
+#    fetch-registry: true
+#    service-url:
+#      defaultZone: http://${EUREKA_SERVER}:8761/eureka
 
 spring:
   application:

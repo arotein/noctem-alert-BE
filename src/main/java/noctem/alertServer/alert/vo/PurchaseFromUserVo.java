@@ -1,9 +1,9 @@
 package noctem.alertServer.alert.vo;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @NoArgsConstructor
 public class PurchaseFromUserVo {
     private Long storeId;
