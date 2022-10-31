@@ -8,7 +8,6 @@ import java.time.format.DateTimeFormatter;
 @Data
 public class OrderCancelFromUserResDto {
     private Integer orderNumber;
-    private String orderStatus;
     private String dateTime;
 
     public OrderCancelFromUserResDto(Integer orderNumber) {

@@ -9,6 +9,7 @@ import noctem.alertServer.alert.dto.response.PurchaseFromUserResDto;
 import noctem.alertServer.alert.vo.OrderCancelFromUserVo;
 import noctem.alertServer.alert.vo.PurchaseFromUserVo;
 import noctem.alertServer.global.common.AlertCommonResponse;
+import noctem.alertServer.global.common.JwtDataExtractor;
 import noctem.alertServer.global.common.SinkSessionRegistry;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.http.MediaType;
@@ -35,24 +36,41 @@ public class AlertToStoreController {
     // 유저가 주문 취소 -> 매장에 알림
     private final String ORDER_CANCEL_FROM_USER_TOPIC = "order-cancel-from-user-alert";
     private final SinkSessionRegistry sinkSessionRegistry;
+    private final JwtDataExtractor jwtDataExtractor;
 
-    @GetMapping(path = "/{storeId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamStoreEvent(@PathVariable Long storeId, ServerWebExchange exchange) {
+    @GetMapping(path = "", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamStoreEvent(ServerWebExchange exchange) {
+        Long storeId = jwtDataExtractor.extractStoreId(exchange);
         log.info("{}번 매장에서 연결 요청", storeId);
-        Sinks.Many<String> sink = sinkSessionRegistry.getOrRegisterStoreSinkSession(storeId);
-        return sink.asFlux().log();
+        return sinkSessionRegistry.getOrRegisterStoreSinkSession(storeId)
+                .getSink().asFlux().log();
+    }
+
+    // == test용 dev code ==
+    @GetMapping(path = "/{storeId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamStoreEventDev(@PathVariable Long storeId) {
+        log.info("{}번 매장에서 연결 요청", storeId);
+        return sinkSessionRegistry.getOrRegisterStoreSinkSession(storeId)
+                .getSink().asFlux().log();
     }
 
     @KafkaListener(topics = {PURCHASE_FROM_USER_TOPIC})
-    public void purchaseFromUser(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
+    public void purchaseFromUser(ConsumerRecord<String, String> consumerRecord) {
         try {
             PurchaseFromUserVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), PurchaseFromUserVo.class);
             log.info("{}번 매장에 주문 요청", vo.getStoreId());
-            Sinks.Many<String> sink = sinkSessionRegistry.getStoreSinkSession(vo.getStoreId());
+            Sinks.Many<String> sink = sinkSessionRegistry.getStoreSinkSession(vo.getStoreId()).getSink();
+            String message;
+            if (vo.getTotalMenuQty() == 1) {
+                message = String.format("%s", vo.getMenuFullName());
+            } else {
+                message = String.format("%s 외 %d건", vo.getMenuFullName(), vo.getTotalMenuQty() - 1);
+            }
             if (sink != null) {
                 sink.tryEmitNext(AlertCommonResponse.builder()
-                        .message(String.format("%d건의 음료 요청이 있습니다.", vo.getTotalMenuQty()))
-                        .data(new PurchaseFromUserResDto())
+                        .message(message)
+                        .alertCode(1)
+                        .data(new PurchaseFromUserResDto(vo.getOrderNumber()))
                         .build()
                         .convertToString());
             }
@@ -64,19 +82,22 @@ public class AlertToStoreController {
     }
 
     @KafkaListener(topics = {ORDER_CANCEL_FROM_USER_TOPIC})
-    public void orderCancelFromUser(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
+    public void orderCancelFromUser(ConsumerRecord<String, String> consumerRecord) {
         try {
             OrderCancelFromUserVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderCancelFromUserVo.class);
             log.info("{}번 매장에 주문취소 요청", vo.getStoreId());
-            Sinks.Many<String> sink = sinkSessionRegistry.getStoreSinkSession(vo.getStoreId());
+            Sinks.Many<String> sink = sinkSessionRegistry.getStoreSinkSession(vo.getStoreId()).getSink();
             if (sink != null) {
                 sink.tryEmitNext(AlertCommonResponse.builder()
-                        .message(String.format("%d번 주문이 취소되었습니다.", vo.getOrderNumber()))
+                        .message(String.format("A-%d번 주문이 취소되었습니다.", vo.getOrderNumber()))
+                        .alertCode(2)
                         .data(new OrderCancelFromUserResDto(vo.getOrderNumber()))
                         .build()
                         .convertToString());
             }
             sinkSessionRegistry.expireUserSession(vo.getUserAccountId());
+        } catch (JsonProcessingException e) {
+            log.warn("{}", e.getMessage());
         } catch (Exception e) {
 
         }

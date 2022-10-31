@@ -7,5 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PurchaseFromUserVo {
     private Long storeId;
+    private String menuFullName;
     private Integer totalMenuQty;
+    private Integer orderNumber;
 }
