@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import noctem.alertServer.AppConfig;
-import noctem.alertServer.alert.dto.response.OrderCancelFromStoreResDto;
 import noctem.alertServer.alert.dto.response.OrderStatusChangeFromStoreDto;
 import noctem.alertServer.alert.vo.OrderCancelFromStoreVo;
 import noctem.alertServer.alert.vo.OrderStatusChangeFromStoreVo;
@@ -97,7 +96,7 @@ public class AlertToUserController {
             sink.tryEmitNext(AlertCommonResponse.builder()
                     .message(String.format("재료 부족으로 인해 A-%d번 주문이 취소되었어요. 카운터에 방문해주세요.", vo.getOrderNumber()))
                     .alertCode(5)
-                    .data(new OrderCancelFromStoreResDto())
+//                    .data(new OrderCancelFromStoreResDto())
                     .build()
                     .convertToString());
             sink.tryEmitComplete();
