@@ -11,7 +11,7 @@ import java.nio.file.AccessDeniedException;
 
 /***
  * errorCode: 8000 ~ 8999
- * 사용가능 : 8001 ~
+ * 사용가능 : 8003 ~
  */
 @Slf4j
 @RestControllerAdvice

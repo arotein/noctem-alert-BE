@@ -55,6 +55,14 @@ public class AlertToUserController {
                 .getSink().asFlux().log();
     }
 
+    @GetMapping(path = "/jwt/{encodedJwt}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamUserEvent(@PathVariable String encodedJwt) {
+        Long userAccountId = jwtDataExtractor.extractUserAccountIdFromJwt(encodedJwt);
+        log.info("{}번 유저가 연결 요청", userAccountId);
+        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
+                .getSink().asFlux().log();
+    }
+
 
     @KafkaListener(topics = {ORDER_STATUS_CHANGE_FROM_STORE_TOPIC})
     public void orderStatusChangeFromStore(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {

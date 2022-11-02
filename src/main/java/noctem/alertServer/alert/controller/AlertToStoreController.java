@@ -54,6 +54,14 @@ public class AlertToStoreController {
                 .getSink().asFlux().log();
     }
 
+    @GetMapping(path = "/jwt/{encodedJwt}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> streamStoreEventJwtDev(@PathVariable String encodedJwt) {
+        Long storeId = jwtDataExtractor.extractStoreIdFromJwt(encodedJwt);
+        log.info("{}번 매장에서 연결 요청", storeId);
+        return sinkSessionRegistry.getOrRegisterStoreSinkSession(storeId)
+                .getSink().asFlux().log();
+    }
+
     @KafkaListener(topics = {PURCHASE_FROM_USER_TOPIC})
     public void purchaseFromUser(ConsumerRecord<String, String> consumerRecord) {
         try {
