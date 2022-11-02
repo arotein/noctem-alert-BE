@@ -1,3 +1,10 @@
+global:
+  service-name: alert-server
+  api:
+    base-path: /sse/${global.service-name}
+  jwt-token:
+    signer: ${NOCTEM_JWT_SIGNER}
+
 server:
   port: 33333
   servlet:
@@ -12,20 +19,11 @@ server:
     enabled-protocols: TLSv1.3
     key-store: classpath:cert.p12
     key-store-type: PKCS12
-    key-store-password: noctem
-
-#eureka:
-#  instance:
-#    instance-id: ${spring.cloud.client.hostname}:${spring.application.instance_id:${random.value}}
-#  client:
-#    register-with-eureka: true
-#    fetch-registry: true
-#    service-url:
-#      defaultZone: http://${EUREKA_SERVER}:8761/eureka
+    key-store-password: ${SSL_KEY_PASSWORD}
 
 spring:
   application:
-    name: alert-server
+    name: ${global.service-name}
   config:
     import: optional:configserver:http://${CONFIG_SERVER}:8888
   profiles:
@@ -48,11 +46,14 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  redis:
+    host: ${REDIS_HOST}
+    port: 6379
 
 management:
   endpoints:
     web:
-      base-path: /sse/alert-server/actuator
+      base-path: /sse/${global.service-name}/actuator
       exposure:
         include: health, refresh, httptrace, busrefresh, prometheus, metrics
   metrics:
@@ -60,18 +61,8 @@ management:
       prometheus:
         enabled: true
     tags:
-      application: ${spring.application.name}
+      application: ${global.service-name}
 
 logging:
-  charset:
-    console: UTF-8
-    file: UTF-8
   level:
     root: info
-
-global:
-  jwt-token:
-    signer: ${NOCTEM_JWT_SIGNER}
-  api:
-    base-path: /sse/alert-server
-
