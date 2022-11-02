@@ -28,7 +28,7 @@ public class JwtDataExtractor {
         if (decodedJwt == null) {
             throw CommonException.builder().build();
         }
-        return (Long) decodedJwt.getAllClaims().get(JWT_STORE_ID);
+        return Long.valueOf(decodedJwt.getAllClaims().get(JWT_STORE_ID).toString());
     }
 
     public Long extractUserAccountId(ServerWebExchange exchange) {
@@ -36,7 +36,7 @@ public class JwtDataExtractor {
         if (decodedJwt == null) {
             throw CommonException.builder().build();
         }
-        return (Long) decodedJwt.getAllClaims().get(JWT_USER_ACCOUNT_ID);
+        return Long.valueOf(decodedJwt.getAllClaims().get(JWT_USER_ACCOUNT_ID).toString());
     }
 
     // Bearer 없는 순수 jwt
@@ -45,7 +45,7 @@ public class JwtDataExtractor {
         if (decodedJwt == null) {
             throw CommonException.builder().errorCode(8001).build();
         }
-        return (Long) decodedJwt.getAllClaims().get(JWT_STORE_ID);
+        return Long.valueOf(decodedJwt.getAllClaims().get(JWT_STORE_ID).toString());
     }
 
     public Long extractUserAccountIdFromJwt(String encodedJwt) {
@@ -53,7 +53,7 @@ public class JwtDataExtractor {
         if (decodedJwt == null) {
             throw CommonException.builder().errorCode(8002).build();
         }
-        return (Long) decodedJwt.getAllClaims().get(JWT_USER_ACCOUNT_ID);
+        return Long.valueOf(decodedJwt.getAllClaims().get(JWT_USER_ACCOUNT_ID).toString());
     }
 
     private JWT extractDecodedJwtFromHeader(ServerWebExchange exchange) {

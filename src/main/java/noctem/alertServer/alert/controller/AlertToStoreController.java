@@ -12,7 +12,6 @@ import noctem.alertServer.global.common.AlertCommonResponse;
 import noctem.alertServer.global.common.JwtDataExtractor;
 import noctem.alertServer.global.common.SinkSessionRegistry;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.http.MediaType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +37,7 @@ public class AlertToStoreController {
     private final SinkSessionRegistry sinkSessionRegistry;
     private final JwtDataExtractor jwtDataExtractor;
 
-    @GetMapping(path = "", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(path = "", produces = "text/event-stream;charset=utf-8")
     public Flux<String> streamStoreEvent(ServerWebExchange exchange) {
         Long storeId = jwtDataExtractor.extractStoreId(exchange);
         log.info("{}번 매장에서 연결 요청", storeId);
@@ -47,14 +46,14 @@ public class AlertToStoreController {
     }
 
     // == test용 dev code ==
-    @GetMapping(path = "/{storeId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(path = "/{storeId}", produces = "text/event-stream;charset=utf-8")
     public Flux<String> streamStoreEventDev(@PathVariable Long storeId) {
         log.info("{}번 매장에서 연결 요청", storeId);
         return sinkSessionRegistry.getOrRegisterStoreSinkSession(storeId)
                 .getSink().asFlux().log();
     }
 
-    @GetMapping(path = "/jwt/{encodedJwt}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(path = "/jwt/{encodedJwt}", produces = "text/event-stream;charset=utf-8")
     public Flux<String> streamStoreEventJwtDev(@PathVariable String encodedJwt) {
         Long storeId = jwtDataExtractor.extractStoreIdFromJwt(encodedJwt);
         log.info("{}번 매장에서 연결 요청", storeId);

@@ -13,7 +13,6 @@ import noctem.alertServer.global.common.JwtDataExtractor;
 import noctem.alertServer.global.common.SinkSessionRegistry;
 import noctem.alertServer.global.enumeration.OrderStatus;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.http.MediaType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,7 +38,7 @@ public class AlertToUserController {
     private final SinkSessionRegistry sinkSessionRegistry;
     private final JwtDataExtractor jwtDataExtractor;
 
-    @GetMapping(path = "", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(path = "", produces = "text/event-stream;charset=utf-8")
     public Flux<String> streamUserEvent(ServerWebExchange exchange) {
         Long userAccountId = jwtDataExtractor.extractUserAccountId(exchange);
         log.info("{}번 유저가 연결 요청", userAccountId);
@@ -48,15 +47,15 @@ public class AlertToUserController {
     }
 
     // == test용 dev code ==
-    @GetMapping(path = "/{userAccountId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamUserEvent(@PathVariable Long userAccountId) {
+    @GetMapping(path = "/{userAccountId}", produces = "text/event-stream;charset=utf-8")
+    public Flux<String> streamUserEventDev(@PathVariable Long userAccountId) {
         log.info("{}번 유저가 연결 요청", userAccountId);
         return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
                 .getSink().asFlux().log();
     }
 
-    @GetMapping(path = "/jwt/{encodedJwt}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> streamUserEvent(@PathVariable String encodedJwt) {
+    @GetMapping(path = "/jwt/{encodedJwt}", produces = "text/event-stream;charset=utf-8")
+    public Flux<String> streamUserEventJwtDev(@PathVariable String encodedJwt) {
         Long userAccountId = jwtDataExtractor.extractUserAccountIdFromJwt(encodedJwt);
         log.info("{}번 유저가 연결 요청", userAccountId);
         return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
