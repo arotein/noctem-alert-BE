@@ -1,17 +1,21 @@
 package noctem.alertServer.global.common;
 
+import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
+@Getter
 @Component
 public class SinkSessionRegistry {
-    public final HashMap<Long, IncludedTimeSink> storeSinksMap = new HashMap<>();
-    public final HashMap<Long, IncludedTimeSink> userSinksMap = new HashMap<>();
+    // <storeId, storeSink>
+    private final HashMap<Long, StoreSink> storeSinksMap = new HashMap<>();
+    // <userAccountId, userSink>
+    private final HashMap<Long, UserSink> userSinksMap = new HashMap<>();
 
-    public IncludedTimeSink getOrRegisterStoreSinkSession(Long storeId) {
+    public StoreSink getOrRegisterStoreSinkSession(Long storeId) {
         if (storeSinksMap.get(storeId) == null) {
-            IncludedTimeSink sink = new IncludedTimeSink().createStoreSink();
+            StoreSink sink = new StoreSink(storeId);
             storeSinksMap.put(storeId, sink);
             return sink;
         } else {
@@ -19,26 +23,26 @@ public class SinkSessionRegistry {
         }
     }
 
-    public IncludedTimeSink getOrRegisterUserSinkSession(Long userAccountId) {
+    public UserSink getOrRegisterUserSinkSession(Long userAccountId, Long storeId) {
         if (userSinksMap.get(userAccountId) == null) {
-            IncludedTimeSink sink = new IncludedTimeSink().createUserSink();
+            UserSink sink = new UserSink(userAccountId, storeId);
             userSinksMap.put(userAccountId, sink);
             return sink;
         } else {
-            return userSinksMap.get(userAccountId);
+            return userSinksMap.get(userAccountId).updateStoreId(storeId);
         }
     }
 
-    public IncludedTimeSink getStoreSinkSession(Long storeId) {
+    public StoreSink getStoreSinkSession(Long storeId) {
         return storeSinksMap.containsKey(storeId) ? storeSinksMap.get(storeId) : null;
     }
 
-    public IncludedTimeSink getUserSinkSession(Long userAccountId) {
+    public UserSink getUserSinkSession(Long userAccountId) {
         return userSinksMap.containsKey(userAccountId) ? userSinksMap.get(userAccountId) : null;
     }
 
     public void expireUserSession(Long userAccountId) {
-        IncludedTimeSink session = userSinksMap.get(userAccountId);
+        UserSink session = userSinksMap.get(userAccountId);
         if (session != null) {
             session.getSink().tryEmitComplete();
         }

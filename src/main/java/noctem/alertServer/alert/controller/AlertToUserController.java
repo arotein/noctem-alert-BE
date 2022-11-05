@@ -7,10 +7,7 @@ import noctem.alertServer.AppConfig;
 import noctem.alertServer.alert.dto.response.OrderStatusChangeFromStoreDto;
 import noctem.alertServer.alert.vo.OrderCancelFromStoreVo;
 import noctem.alertServer.alert.vo.OrderStatusChangeFromStoreVo;
-import noctem.alertServer.global.common.AlertCommonResponse;
-import noctem.alertServer.global.common.IncludedTimeSink;
-import noctem.alertServer.global.common.JwtDataExtractor;
-import noctem.alertServer.global.common.SinkSessionRegistry;
+import noctem.alertServer.global.common.*;
 import noctem.alertServer.global.enumeration.OrderStatus;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -21,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+
+import java.util.Objects;
 
 /***
  * ORDER_STATUS_CHANGE_FROM_STORE_TOPIC : 매장에서 주문상태 변경 -> 유저에게 알림
@@ -38,27 +37,27 @@ public class AlertToUserController {
     private final SinkSessionRegistry sinkSessionRegistry;
     private final JwtDataExtractor jwtDataExtractor;
 
-    @GetMapping(path = "", produces = "text/event-stream;charset=utf-8")
-    public Flux<String> streamUserEvent(ServerWebExchange exchange) {
+    @GetMapping(path = "/{storeId}", produces = "text/event-stream;charset=utf-8")
+    public Flux<String> streamUserEvent(ServerWebExchange exchange, @PathVariable Long storeId) {
         Long userAccountId = jwtDataExtractor.extractUserAccountId(exchange);
         log.info("{}번 유저가 연결 요청", userAccountId);
-        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
+        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId, storeId)
                 .getSink().asFlux().log();
     }
 
     // == test용 dev code ==
-    @GetMapping(path = "/{userAccountId}", produces = "text/event-stream;charset=utf-8")
-    public Flux<String> streamUserEventDev(@PathVariable Long userAccountId) {
+    @GetMapping(path = "/{userAccountId}/{storeId}", produces = "text/event-stream;charset=utf-8")
+    public Flux<String> streamUserEventDev(@PathVariable Long userAccountId, @PathVariable Long storeId) {
         log.info("{}번 유저가 연결 요청", userAccountId);
-        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
+        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId, storeId)
                 .getSink().asFlux().log();
     }
 
-    @GetMapping(path = "/jwt/{encodedJwt}", produces = "text/event-stream;charset=utf-8")
-    public Flux<String> streamUserEventJwtDev(@PathVariable String encodedJwt) {
+    @GetMapping(path = "/jwt/{encodedJwt}/{storeId}", produces = "text/event-stream;charset=utf-8")
+    public Flux<String> streamUserEventJwtDev(@PathVariable String encodedJwt, @PathVariable Long storeId) {
         Long userAccountId = jwtDataExtractor.extractUserAccountIdFromJwt(encodedJwt);
         log.info("{}번 유저가 연결 요청", userAccountId);
-        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId)
+        return sinkSessionRegistry.getOrRegisterUserSinkSession(userAccountId, storeId)
                 .getSink().asFlux().log();
     }
 
@@ -67,7 +66,7 @@ public class AlertToUserController {
     public void orderStatusChangeFromStore(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         OrderStatusChangeFromStoreVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderStatusChangeFromStoreVo.class);
         log.info("purchaseId={} 제조상태 {}로 변경", vo.getPurchaseId(), vo.getOrderStatus());
-        IncludedTimeSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
+        UserSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
         if (session != null) {
             Sinks.Many<String> sink = session.getSink();
             String message = null;
@@ -92,12 +91,13 @@ public class AlertToUserController {
                 sinkSessionRegistry.expireUserSession(vo.getUserAccountId());
             }
         }
+        sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
     }
 
     @KafkaListener(topics = {ORDER_CANCEL_FROM_STORE_TOPIC})
     public void orderCancelFromStore(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         OrderCancelFromStoreVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderCancelFromStoreVo.class);
-        IncludedTimeSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
+        UserSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
         if (session != null) {
             Sinks.Many<String> sink = session.getSink();
             sink.tryEmitNext(AlertCommonResponse.builder()
@@ -106,8 +106,23 @@ public class AlertToUserController {
 //                    .data(new OrderCancelFromStoreResDto())
                     .build()
                     .convertToString());
-            sink.tryEmitComplete();
             sinkSessionRegistry.expireUserSession(vo.getUserAccountId());
         }
+        sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
+    }
+
+    // subjectUserAccountId: 알림의 주체가 되는 유저.
+    // sendAlertMessageOtherUser: 주체가 되는 유저 이외의 유저에게 알림전송
+    private void sendAlertMessageOtherUser(Long storeId, Long subjectUserAccountId) {
+        sinkSessionRegistry.getUserSinksMap().forEach((userAccountId, userSink) -> {
+            if (Objects.equals(storeId, userSink.getStoreId())
+                    && !Objects.equals(subjectUserAccountId, userAccountId)) {
+                userSink.getSink().tryEmitNext(AlertCommonResponse.builder()
+                        .alertCode(6)
+                        .build()
+                        .convertToString());
+            }
+        });
+
     }
 }
