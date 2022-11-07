@@ -10,4 +10,6 @@ public class PurchaseFromUserVo {
     private String menuFullName;
     private Integer totalMenuQty;
     private Integer orderNumber;
+    private Long userAccountId;
+    private Long purchaseId;
 }

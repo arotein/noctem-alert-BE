@@ -1,17 +1,21 @@
 package noctem.alertServer.global.common;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import noctem.alertServer.alert.domain.repository.RedisRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
 @Getter
 @Component
+@RequiredArgsConstructor
 public class SinkSessionRegistry {
     // <storeId, storeSink>
     private final HashMap<Long, StoreSink> storeSinksMap = new HashMap<>();
     // <userAccountId, userSink>
     private final HashMap<Long, UserSink> userSinksMap = new HashMap<>();
+    private final RedisRepository redisRepository;
 
     public StoreSink getOrRegisterStoreSinkSession(Long storeId) {
         if (storeSinksMap.get(storeId) == null) {
@@ -41,11 +45,18 @@ public class SinkSessionRegistry {
         return userSinksMap.containsKey(userAccountId) ? userSinksMap.get(userAccountId) : null;
     }
 
-    public void expireUserSession(Long userAccountId) {
+    public void disconnectAndDeleteUserSession(Long userAccountId) {
         UserSink session = userSinksMap.get(userAccountId);
         if (session != null) {
             session.getSink().tryEmitComplete();
         }
         userSinksMap.remove(userAccountId);
+    }
+
+    public void disconnectUserSession(Long userAccountId) {
+        UserSink session = userSinksMap.get(userAccountId);
+        if (session != null) {
+            session.getSink().tryEmitComplete();
+        }
     }
 }

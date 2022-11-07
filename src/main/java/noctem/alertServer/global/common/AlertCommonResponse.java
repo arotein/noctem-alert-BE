@@ -9,6 +9,9 @@ import noctem.alertServer.AppConfig;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/***
+ * alertCode: 8까지 사용.
+ */
 @Getter
 @Slf4j
 public class AlertCommonResponse<T> {
