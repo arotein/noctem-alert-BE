@@ -66,6 +66,9 @@ public class AlertToUserController {
     public void orderStatusChangeFromStore(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         OrderStatusChangeFromStoreVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderStatusChangeFromStoreVo.class);
         log.info("purchaseId={} 제조상태 {}로 변경", vo.getPurchaseId(), vo.getOrderStatus());
+        // 본인 매장에 알림 전송
+        sendAlertSameStore(vo.getStoreId());
+        // 주체 유저에게 알림 전송
         UserSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
         if (session != null) {
             Sinks.Many<String> sink = session.getSink();
@@ -97,6 +100,9 @@ public class AlertToUserController {
     @KafkaListener(topics = {ORDER_CANCEL_FROM_STORE_TOPIC})
     public void orderCancelFromStore(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
         OrderCancelFromStoreVo vo = AppConfig.objectMapper().readValue(consumerRecord.value(), OrderCancelFromStoreVo.class);
+        // 본인 매장에 알림 전송
+        sendAlertSameStore(vo.getStoreId());
+        // 주체 유저에게 알림 전송
         UserSink session = sinkSessionRegistry.getUserSinkSession(vo.getUserAccountId());
         if (session != null) {
             Sinks.Many<String> sink = session.getSink();
@@ -111,7 +117,7 @@ public class AlertToUserController {
         sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
     }
 
-    // subjectUserAccountId: 알림의 주체가 되는 유저.
+    // subjectUserAccountId: 알림의 주체가 되는 유저
     // sendAlertMessageOtherUser: 주체가 되는 유저 이외의 유저에게 알림전송
     private void sendAlertMessageOtherUser(Long storeId, Long subjectUserAccountId) {
         sinkSessionRegistry.getUserSinksMap().forEach((userAccountId, userSink) -> {
@@ -123,6 +129,14 @@ public class AlertToUserController {
                         .convertToString());
             }
         });
+    }
 
+    // 본인 매장에 알림 전송. 다른 포스기에서 주문상태 변경했을 경우
+    private void sendAlertSameStore(Long storeId) {
+        sinkSessionRegistry.getStoreSinkSession(storeId).getSink()
+                .tryEmitNext(AlertCommonResponse.builder()
+                        .alertCode(7)
+                        .build()
+                        .convertToString());
     }
 }
