@@ -18,6 +18,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Slf4j
 @Service
 @Transactional
@@ -80,10 +82,25 @@ public class AlertToStoreService {
                 sinkSessionRegistry.disconnectAndDeleteUserSession(vo.getUserAccountId());
             }
             redisRepository.pushResponseMessage(vo.getUserAccountId(), responseMessage);
+            sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
         } catch (JsonProcessingException e) {
             log.warn("JsonProcessingException in orderCancelFromUser={}", e.getMessage());
         } catch (Exception e) {
             log.warn("Exception in orderCancelFromUser={}", e.getMessage());
         }
+    }
+
+    // subjectUserAccountId: 알림의 주체가 되는 유저
+    // sendAlertMessageOtherUser: 주체가 되는 유저 이외의 유저에게 알림전송
+    private void sendAlertMessageOtherUser(Long storeId, Long subjectUserAccountId) {
+        sinkSessionRegistry.getUserSinksMap().forEach((userAccountId, userSink) -> {
+            if (Objects.equals(storeId, userSink.getStoreId())
+                    && !Objects.equals(subjectUserAccountId, userAccountId)) {
+                userSink.emitNext(AlertCommonResponse.builder()
+                        .alertCode(6)
+                        .build()
+                        .convertToString());
+            }
+        });
     }
 }

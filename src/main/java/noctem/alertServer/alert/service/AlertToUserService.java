@@ -62,6 +62,7 @@ public class AlertToUserService {
                     .build()
                     .convertToString();
             redisRepository.pushResponseMessage(vo.getUserAccountId(), responseMessage);
+            sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
         }
         if (session != null) {
             session.emitNext(responseMessage);
@@ -69,7 +70,6 @@ public class AlertToUserService {
         if (OrderStatus.COMPLETED.getValue().equals(vo.getOrderStatus())) {
             sinkSessionRegistry.disconnectAndDeleteUserSession(vo.getUserAccountId());
         }
-        sendAlertMessageOtherUser(vo.getStoreId(), vo.getUserAccountId());
     }
 
     @KafkaListener(topics = {ORDER_CANCEL_FROM_STORE_TOPIC})
